@@ -70,6 +70,24 @@ class Camera:
         self.camera = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_CAMERA, name)
         if self.camera < 0:
             raise SystemExit(f"the model has no camera {name!r}")
+
+        # **The model's head camera faces backwards.** Measured against the duck's own forward axis
+        # and the ToF site's: the camera's view direction is -x where both of those are +x, exactly
+        # 180 degrees out. On screen that is a duck apparently seeing what is behind it — a cyan cube
+        # it is walking away from, sitting in frame.
+        #
+        # Turned 180 degrees about the camera's own up axis, which fixes the direction and keeps
+        # everything else. The roll is *not* touched: this camera's up axis is the duck's left, so a
+        # rendered frame comes out on its side — which is right, because the real head camera is
+        # mounted a quarter turn off and every consumer already expects that. `mediad --rotate 90`
+        # stays true of a simulated duck for the same reason it is true of a real one.
+        #
+        # Done here rather than in the MJCF, because that file belongs to the RL work and a camera
+        # nothing in training uses is not worth a change they have to review.
+        turn = np.array([0.0, 0.0, 1.0, 0.0])  # 180 degrees about y, scalar-first
+        fixed = np.zeros(4)
+        mujoco.mju_mulQuat(fixed, model.cam_quat[self.camera], turn)
+        model.cam_quat[self.camera] = fixed
         self.renderer = mujoco.Renderer(model, height=height, width=width)
         self.width = width
         self.height = height
