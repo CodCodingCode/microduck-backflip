@@ -495,7 +495,7 @@ def run(world: World, headless: bool) -> None:
             if eyes and step % passes_per_eye == 0:
                 for body in eyes:
                     if body.camera is not None:
-                        body.camera.render(world.data)
+                        body.camera.render(world)
     except KeyboardInterrupt:
         pass
     finally:
@@ -554,6 +554,11 @@ def main() -> None:
         body = Body(world, index, limp=args.limp)
         body.place(pose, trunk_z, offset_y=index * SPACING)
         world.bodies.append(body)
+        # Kinematics before anything can be asked for. `site_xpos` and `site_xmat` are unpopulated
+        # until a forward pass has run — zero, not stale — and a ToF read that arrives first casts a
+        # zero-length ray, which MuJoCo answers by aborting the process. Building a renderer takes
+        # long enough that `tofd` won every time once cameras were switched on.
+        mujoco.mj_forward(world.model, world.data)
         server = Server((args.host, args.port + index), Handler)
         server.body = body
         threading.Thread(target=server.serve_forever, daemon=True).start()
@@ -567,7 +572,6 @@ def main() -> None:
             threading.Thread(target=frames.serve_forever, daemon=True).start()
             servers.append(frames)
 
-    mujoco.mj_forward(world.model, world.data)
     print(f"== {args.scene.name}: {args.ducks} duck(s), starting at {args.keyframe}", flush=True)
     for index in range(args.ducks):
         eye = f" · camera on {args.host}:{args.frame_port + index}" if index in wanted else ""

@@ -76,8 +76,18 @@ class Camera:
         self.latest: bytes | None = None
         self.lock = threading.Lock()
 
-    def render(self, data: mujoco.MjData) -> None:
-        self.renderer.update_scene(data, camera=self.camera)
+    def render(self, world) -> None:
+        """Render one frame, reading `MjData` only while holding the world's lock.
+
+        **`update_scene` reads the whole of `MjData`, and it runs on the step loop's thread while
+        sensor reads run on socket threads.** Unlocked, a ToF read caught a site orientation
+        mid-write and got a zero-length ray direction — which MuJoCo answers with
+        `mj_ray: vector length is too small` and an abort, taking the simulator down with it. The
+        lock is held for the scene copy, which is a millisecond, and released for the render, which
+        is twelve and touches no shared state.
+        """
+        with world.lock:
+            self.renderer.update_scene(world.data, camera=self.camera)
         packed = to_uyvy(self.renderer.render())
         with self.lock:
             self.latest = packed

@@ -74,6 +74,13 @@ class Tof:
 
         distance_mm = [0] * ZONES
         status = [STATUS_NO_TARGET] * ZONES
+
+        # A zero-length direction makes `mj_ray` abort the whole process — "vector length is too
+        # small" — so it is checked rather than trusted. It happens for a real reason: before the
+        # first forward pass every site orientation is zero, and a client can connect before then.
+        if not np.isfinite(world).all() or np.linalg.norm(world) < 1e-9:
+            return distance_mm, status
+
         geom = np.zeros(1, dtype=np.int32)
         for zone in range(ZONES):
             hit = mujoco.mj_ray(
