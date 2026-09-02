@@ -52,6 +52,8 @@ from pathlib import Path
 import mujoco
 import numpy as np
 
+from mjlab_microduck.sim.camera import FPS as CAMERA_FPS
+from mjlab_microduck.sim.camera import Camera, FrameHandler, FrameServer
 from mjlab_microduck.sim.tof import COLS, ROWS, Tof
 
 PROTOCOL = 1
@@ -235,6 +237,9 @@ class Body:
         # The depth sensor, on the model's own `tof` site — so a head that turns takes it along,
         # which is what makes `robot.look` a way to scan a room.
         self.tof = Tof(model, ident(mujoco.mjtObj.mjOBJ_SITE, "tof"), seed=index)
+        # Built only when this duck is one of `--cameras`: a renderer costs 12 ms a frame, which is
+        # forty times what stepping four ducks' physics costs.
+        self.camera: Camera | None = None
         self.trunk = int(model.jnt_qposadr[ident(mujoco.mjtObj.mjOBJ_JOINT, "trunk_base_freejoint")])
         self.trunk_dof = int(model.jnt_dofadr[ident(mujoco.mjtObj.mjOBJ_JOINT, "trunk_base_freejoint")])
 
@@ -460,6 +465,9 @@ def run(world: World, headless: bool) -> None:
     # the scene on this thread, and with several ducks in it that is the difference between keeping
     # real time and not.
     passes_per_frame = max(1, round((1.0 / 30.0) / period))
+    # The cameras, at their own rate — slower than the viewer and far slower than physics.
+    eyes = [b for b in world.bodies if b.camera is not None]
+    passes_per_eye = max(1, round((1.0 / CAMERA_FPS) / period))
     step = 0
     next_step = time.perf_counter()
     behind = 0
@@ -484,6 +492,10 @@ def run(world: World, headless: bool) -> None:
             step += 1
             if viewer is not None and step % passes_per_frame == 0:
                 viewer.sync()
+            if eyes and step % passes_per_eye == 0:
+                for body in eyes:
+                    if body.camera is not None:
+                        body.camera.render(world.data)
     except KeyboardInterrupt:
         pass
     finally:
@@ -498,6 +510,15 @@ def main() -> None:
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=7801, help="the first duck's port; +1 each")
     parser.add_argument("--headless", action="store_true", help="no viewer window")
+    parser.add_argument(
+        "--cameras",
+        default="",
+        help="which ducks render a head camera, by letter — `a`, `a,c`, or `all`. Opt in, because a "
+        "rendered frame costs 12 ms and four cameras is most of a core; four ducks without them is "
+        "nothing. Each becomes a frame port at --frame-port + its index",
+    )
+    parser.add_argument("--frame-port", type=int, default=7901, help="the first camera's port")
+    parser.add_argument("--camera-fps", type=int, default=CAMERA_FPS)
     parser.add_argument(
         "--limp",
         action="store_true",
@@ -523,6 +544,11 @@ def main() -> None:
 
     world = World(args.scene, args.ducks)
     pose, trunk_z = pose_table(args.scene, args.keyframe)
+    wanted = set()
+    if args.cameras.strip() == "all":
+        wanted = set(range(args.ducks))
+    elif args.cameras.strip():
+        wanted = {ord(c.strip()) - ord("a") for c in args.cameras.split(",") if c.strip()}
     servers = []
     for index in range(args.ducks):
         body = Body(world, index, limp=args.limp)
@@ -533,10 +559,19 @@ def main() -> None:
         threading.Thread(target=server.serve_forever, daemon=True).start()
         servers.append(server)
 
+        if index in wanted:
+            body.camera = Camera(world.model, f"{body.prefix}head_camera")
+            frames = FrameServer((args.host, args.frame_port + index), FrameHandler)
+            frames.camera = body.camera
+            frames.fps = args.camera_fps
+            threading.Thread(target=frames.serve_forever, daemon=True).start()
+            servers.append(frames)
+
     mujoco.mj_forward(world.model, world.data)
     print(f"== {args.scene.name}: {args.ducks} duck(s), starting at {args.keyframe}", flush=True)
     for index in range(args.ducks):
-        print(f"==   duck {index}: robotd --sim {args.host}:{args.port + index}", flush=True)
+        eye = f" · camera on {args.host}:{args.frame_port + index}" if index in wanted else ""
+        print(f"==   duck {index}: robotd --sim {args.host}:{args.port + index}{eye}", flush=True)
 
     run(world, headless=args.headless)
 
