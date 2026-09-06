@@ -18,7 +18,8 @@
 
   Doorways are intentionally OFF-CENTRE on each interior wall — the
   asymmetry is what lets MCL disambiguate poses on a 45° forward FoV.
-  All wall heights = 0.50 m (geom z half-size 0.25, pos z 0.25). Most
+  All wall heights = 1.60 m (geom z half-size 0.80, pos z 0.80) so a camera never sees the
+  skybox over a wall — a real room has no sky indoors. Most
   furniture is duck-height-relevant (≤ 50 cm tall).
 -->
 <mujoco model="apartment">
@@ -110,54 +111,54 @@
           pos="2.20 1.50 0.004" material="floor_carpet" contype="0" conaffinity="0"/>
 
     <!-- ── Outer walls (6×4 m bounding box at ±4 / ±3) ─────────────────── -->
-    <geom name="wall_south" type="box" size="4.00 0.06 0.25"
-          pos="0 -3.00 0.25" material="wall_warm" contype="1" conaffinity="1"/>
-    <geom name="wall_north" type="box" size="4.00 0.06 0.25"
-          pos="0  3.00 0.25" material="wall_warm" contype="1" conaffinity="1"/>
-    <geom name="wall_west"  type="box" size="0.06 3.00 0.25"
-          pos="-4.00 0 0.25" material="wall_warm" contype="1" conaffinity="1"/>
-    <geom name="wall_east"  type="box" size="0.06 3.00 0.25"
-          pos=" 4.00 0 0.25" material="wall_cool" contype="1" conaffinity="1"/>
+    <geom name="wall_south" type="box" size="4.00 0.06 0.80"
+          pos="0 -3.00 0.80" material="wall_warm" contype="1" conaffinity="1"/>
+    <geom name="wall_north" type="box" size="4.00 0.06 0.80"
+          pos="0 3.00 0.80" material="wall_warm" contype="1" conaffinity="1"/>
+    <geom name="wall_west"  type="box" size="0.06 3.00 0.80"
+          pos="-4.00 0 0.80" material="wall_warm" contype="1" conaffinity="1"/>
+    <geom name="wall_east"  type="box" size="0.06 3.00 0.80"
+          pos="4.00 0 0.80" material="wall_cool" contype="1" conaffinity="1"/>
 
     <!-- ── Interior wall A: kitchen ↔ living (y=+0.5, x ∈ [-4, -1]) ────── -->
     <!-- Doorway at x ∈ [-3.0, -2.2] (0.8 m wide, off-centre to the west). -->
-    <geom name="wA_w" type="box" size="0.50 0.06 0.25"
-          pos="-3.50  0.50 0.25" material="wall_kitchen" contype="1" conaffinity="1"/>
-    <geom name="wA_e" type="box" size="0.60 0.06 0.25"
-          pos="-1.60  0.50 0.25" material="wall_warm" contype="1" conaffinity="1"/>
+    <geom name="wA_w" type="box" size="0.50 0.06 0.80"
+          pos="-3.50 0.50 0.80" material="wall_kitchen" contype="1" conaffinity="1"/>
+    <geom name="wA_e" type="box" size="0.60 0.06 0.80"
+          pos="-1.60 0.50 0.80" material="wall_warm" contype="1" conaffinity="1"/>
 
     <!-- ── Interior wall B: corridor west wall (x=-1, y ∈ [-3, +3]) ─────── -->
     <!-- Two doorways, deliberately at different y: -->
     <!--   Living → corridor at y ∈ [-1.8, -1.0]  -->
     <!--   Kitchen → corridor at y ∈ [+1.6, +2.4] -->
-    <geom name="wB_s" type="box" size="0.06 0.60 0.25"
-          pos="-1.00 -2.40 0.25" material="wall_warm" contype="1" conaffinity="1"/>
-    <geom name="wB_m" type="box" size="0.06 1.30 0.25"
-          pos="-1.00  0.30 0.25" material="wall_warm" contype="1" conaffinity="1"/>
-    <geom name="wB_n" type="box" size="0.06 0.30 0.25"
-          pos="-1.00  2.70 0.25" material="wall_kitchen" contype="1" conaffinity="1"/>
+    <geom name="wB_s" type="box" size="0.06 0.60 0.80"
+          pos="-1.00 -2.40 0.80" material="wall_warm" contype="1" conaffinity="1"/>
+    <geom name="wB_m" type="box" size="0.06 1.30 0.80"
+          pos="-1.00 0.30 0.80" material="wall_warm" contype="1" conaffinity="1"/>
+    <geom name="wB_n" type="box" size="0.06 0.30 0.80"
+          pos="-1.00 2.70 0.80" material="wall_kitchen" contype="1" conaffinity="1"/>
 
     <!-- ── Interior wall C: corridor east wall (x=+0.5, y ∈ [-3, +3]) ──── -->
     <!-- Three doorways, all at distinct y: -->
     <!--   Bathroom at y ∈ [-2.5, -1.7] (close to south)  -->
     <!--   Office   at y ∈ [-0.2, +0.6] (slightly north of centre) -->
     <!--   Bedroom  at y ∈ [+1.4, +2.2]                 -->
-    <geom name="wC_s" type="box" size="0.06 0.25 0.25"
-          pos="0.50 -2.75 0.25" material="wall_bath" contype="1" conaffinity="1"/>
-    <geom name="wC_m1" type="box" size="0.06 0.75 0.25"
-          pos="0.50 -0.95 0.25" material="wall_warm" contype="1" conaffinity="1"/>
-    <geom name="wC_m2" type="box" size="0.06 0.40 0.25"
-          pos="0.50  1.00 0.25" material="wall_warm" contype="1" conaffinity="1"/>
-    <geom name="wC_n" type="box" size="0.06 0.40 0.25"
-          pos="0.50  2.60 0.25" material="wall_warm" contype="1" conaffinity="1"/>
+    <geom name="wC_s" type="box" size="0.06 0.25 0.80"
+          pos="0.50 -2.75 0.80" material="wall_bath" contype="1" conaffinity="1"/>
+    <geom name="wC_m1" type="box" size="0.06 0.75 0.80"
+          pos="0.50 -0.95 0.80" material="wall_warm" contype="1" conaffinity="1"/>
+    <geom name="wC_m2" type="box" size="0.06 0.40 0.80"
+          pos="0.50 1.00 0.80" material="wall_warm" contype="1" conaffinity="1"/>
+    <geom name="wC_n" type="box" size="0.06 0.40 0.80"
+          pos="0.50 2.60 0.80" material="wall_warm" contype="1" conaffinity="1"/>
 
     <!-- ── Interior wall F: bedroom ↔ office (y=+1, x ∈ [+0.5, +4]) ────── -->
-    <geom name="wF" type="box" size="1.75 0.06 0.25"
-          pos="2.25 1.00 0.25" material="wall_warm" contype="1" conaffinity="1"/>
+    <geom name="wF" type="box" size="1.75 0.06 0.80"
+          pos="2.25 1.00 0.80" material="wall_warm" contype="1" conaffinity="1"/>
 
     <!-- ── Interior wall G: office ↔ bathroom (y=-1, x ∈ [+0.5, +4]) ───── -->
-    <geom name="wG" type="box" size="1.75 0.06 0.25"
-          pos="2.25 -1.00 0.25" material="wall_bath" contype="1" conaffinity="1"/>
+    <geom name="wG" type="box" size="1.75 0.06 0.80"
+          pos="2.25 -1.00 0.80" material="wall_bath" contype="1" conaffinity="1"/>
 
     <!-- ── Kitchen furniture (NW) ──────────────────────────────────────── -->
     <!-- Counter along north wall -->
