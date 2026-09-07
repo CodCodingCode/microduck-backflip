@@ -25,33 +25,35 @@
 <mujoco model="apartment">
 
   <asset>
-    <texture type="2d" name="floor_wood" builtin="checker"
-             rgb1="0.74 0.60 0.38" rgb2="0.52 0.40 0.24"
-             width="256" height="256"/>
-    <texture type="2d" name="floor_tile" builtin="checker"
-             rgb1="0.92 0.92 0.88" rgb2="0.66 0.66 0.62"
-             width="256" height="256"/>
-    <material name="floor_main"   texture="floor_wood" texrepeat="14 14" reflectance="0.04"/>
-    <material name="floor_kitchen" texture="floor_tile" texrepeat="20 20" reflectance="0.05"/>
-    <material name="floor_bath"   texture="floor_tile" texrepeat="20 20" reflectance="0.10"/>
+    <!-- Dense random marks (not a bare checker) so the floor carries non-repeating detail a visual
+         SLAM can match; texrepeat kept low so the pattern does not tile into ambiguity. -->
+    <texture type="2d" name="floor_wood" builtin="checker" mark="random" random="0.4"
+             rgb1="0.74 0.60 0.38" rgb2="0.52 0.40 0.24" markrgb="0.30 0.22 0.12"
+             width="1024" height="1024"/>
+    <texture type="2d" name="floor_tile" builtin="checker" mark="random" random="0.4"
+             rgb1="0.92 0.92 0.88" rgb2="0.66 0.66 0.62" markrgb="0.30 0.30 0.28"
+             width="1024" height="1024"/>
+    <material name="floor_main"   texture="floor_wood" texrepeat="4 4" reflectance="0.04"/>
+    <material name="floor_kitchen" texture="floor_tile" texrepeat="5 5" reflectance="0.05"/>
+    <material name="floor_bath"   texture="floor_tile" texrepeat="5 5" reflectance="0.10"/>
     <material name="floor_carpet" rgba="0.58 0.50 0.45 1" reflectance="0.01"/>
 
     <!-- Walls carry texture so a camera has something to track: a flat pastel wall is
          featureless to any visual SLAM, and the real apartment this stands in for has paint
          grain, skirting, sockets and pictures. Checker + random marks give corners at every
          scale; each room gets its own hue so places do not look alike. -->
-    <texture type="2d" name="wall_warm_tex" builtin="checker" mark="random" random="0.08"
-             rgb1="0.94 0.88 0.80" rgb2="0.84 0.76 0.66" markrgb="0.35 0.30 0.25" width="512" height="512"/>
-    <texture type="2d" name="wall_cool_tex" builtin="checker" mark="random" random="0.08"
-             rgb1="0.80 0.87 0.95" rgb2="0.68 0.76 0.86" markrgb="0.25 0.30 0.40" width="512" height="512"/>
-    <texture type="2d" name="wall_kitchen_tex" builtin="checker" mark="random" random="0.08"
-             rgb1="0.92 0.94 0.84" rgb2="0.78 0.82 0.68" markrgb="0.30 0.35 0.25" width="512" height="512"/>
-    <texture type="2d" name="wall_bath_tex" builtin="checker" mark="random" random="0.08"
-             rgb1="0.84 0.92 0.95" rgb2="0.70 0.80 0.86" markrgb="0.25 0.35 0.40" width="512" height="512"/>
-    <material name="wall_warm"     texture="wall_warm_tex"    texrepeat="6 3" reflectance="0.02"/>
-    <material name="wall_cool"     texture="wall_cool_tex"    texrepeat="6 3" reflectance="0.02"/>
-    <material name="wall_kitchen"  texture="wall_kitchen_tex" texrepeat="6 3" reflectance="0.02"/>
-    <material name="wall_bath"     texture="wall_bath_tex"    texrepeat="6 3" reflectance="0.05"/>
+    <texture type="2d" name="wall_warm_tex" builtin="checker" mark="random" random="0.45"
+             rgb1="0.94 0.88 0.80" rgb2="0.84 0.76 0.66" markrgb="0.35 0.30 0.25" width="1024" height="1024"/>
+    <texture type="2d" name="wall_cool_tex" builtin="checker" mark="random" random="0.45"
+             rgb1="0.80 0.87 0.95" rgb2="0.68 0.76 0.86" markrgb="0.25 0.30 0.40" width="1024" height="1024"/>
+    <texture type="2d" name="wall_kitchen_tex" builtin="checker" mark="random" random="0.45"
+             rgb1="0.92 0.94 0.84" rgb2="0.78 0.82 0.68" markrgb="0.30 0.35 0.25" width="1024" height="1024"/>
+    <texture type="2d" name="wall_bath_tex" builtin="checker" mark="random" random="0.45"
+             rgb1="0.84 0.92 0.95" rgb2="0.70 0.80 0.86" markrgb="0.25 0.35 0.40" width="1024" height="1024"/>
+    <material name="wall_warm"     texture="wall_warm_tex"    texrepeat="2 1" reflectance="0.02"/>
+    <material name="wall_cool"     texture="wall_cool_tex"    texrepeat="2 1" reflectance="0.02"/>
+    <material name="wall_kitchen"  texture="wall_kitchen_tex" texrepeat="2 1" reflectance="0.02"/>
+    <material name="wall_bath"     texture="wall_bath_tex"    texrepeat="2 1" reflectance="0.05"/>
 
     <material name="sofa"          rgba="0.35 0.45 0.68 1"/>
     <material name="table_wood"    rgba="0.55 0.38 0.20 1"/>
