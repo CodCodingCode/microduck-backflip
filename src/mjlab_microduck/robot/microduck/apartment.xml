@@ -25,35 +25,46 @@
 <mujoco model="apartment">
 
   <asset>
-    <!-- Dense random marks (not a bare checker) so the floor carries non-repeating detail a visual
-         SLAM can match; texrepeat kept low so the pattern does not tile into ambiguity. -->
-    <texture type="2d" name="floor_wood" builtin="checker" mark="random" random="0.4"
-             rgb1="0.74 0.60 0.38" rgb2="0.52 0.40 0.24" markrgb="0.30 0.22 0.12"
-             width="1024" height="1024"/>
-    <texture type="2d" name="floor_tile" builtin="checker" mark="random" random="0.4"
-             rgb1="0.92 0.92 0.88" rgb2="0.66 0.66 0.62" markrgb="0.30 0.30 0.28"
-             width="1024" height="1024"/>
-    <material name="floor_main"   texture="floor_wood" texrepeat="4 4" reflectance="0.04"/>
-    <material name="floor_kitchen" texture="floor_tile" texrepeat="5 5" reflectance="0.05"/>
-    <material name="floor_bath"   texture="floor_tile" texrepeat="5 5" reflectance="0.10"/>
-    <material name="floor_carpet" rgba="0.58 0.50 0.45 1" reflectance="0.01"/>
+    <!-- ANTI-ALIASING FOR LOOP CLOSURE. ORB (what RTAB-Map matches on) keys on grayscale gradient
+         STRUCTURE, not colour — so two rooms that share a checker pattern alias even when recoloured.
+         Each room therefore gets a STRUCTURALLY distinct texture: a different mark type
+         (random dots / edge lines / cross) AND a different tile scale (texrepeat), so its feature
+         signature is unique. Higher `random` = more high-frequency detail = more, more-distinctive
+         keypoints. The duck's camera is LOW (it sees mostly floor), so distinct FLOORS matter most.
 
-    <!-- Walls carry texture so a camera has something to track: a flat pastel wall is
-         featureless to any visual SLAM, and the real apartment this stands in for has paint
-         grain, skirting, sockets and pictures. Checker + random marks give corners at every
-         scale; each room gets its own hue so places do not look alike. -->
-    <texture type="2d" name="wall_warm_tex" builtin="checker" mark="random" random="0.45"
-             rgb1="0.94 0.88 0.80" rgb2="0.84 0.76 0.66" markrgb="0.35 0.30 0.25" width="1024" height="1024"/>
-    <texture type="2d" name="wall_cool_tex" builtin="checker" mark="random" random="0.45"
-             rgb1="0.80 0.87 0.95" rgb2="0.68 0.76 0.86" markrgb="0.25 0.30 0.40" width="1024" height="1024"/>
-    <texture type="2d" name="wall_kitchen_tex" builtin="checker" mark="random" random="0.45"
-             rgb1="0.92 0.94 0.84" rgb2="0.78 0.82 0.68" markrgb="0.30 0.35 0.25" width="1024" height="1024"/>
-    <texture type="2d" name="wall_bath_tex" builtin="checker" mark="random" random="0.45"
-             rgb1="0.84 0.92 0.95" rgb2="0.70 0.80 0.86" markrgb="0.25 0.35 0.40" width="1024" height="1024"/>
-    <material name="wall_warm"     texture="wall_warm_tex"    texrepeat="2 1" reflectance="0.02"/>
-    <material name="wall_cool"     texture="wall_cool_tex"    texrepeat="2 1" reflectance="0.02"/>
-    <material name="wall_kitchen"  texture="wall_kitchen_tex" texrepeat="2 1" reflectance="0.02"/>
-    <material name="wall_bath"     texture="wall_bath_tex"    texrepeat="2 1" reflectance="0.05"/>
+         Floors — one structurally-unique texture per room. -->
+    <texture type="2d" name="ft_kitchen"  builtin="checker" mark="random" random="0.55" rgb1="0.90 0.92 0.86" rgb2="0.58 0.66 0.56" markrgb="0.18 0.24 0.18" width="1024" height="1024"/>
+    <texture type="2d" name="ft_living"   builtin="checker" mark="cross"                rgb1="0.76 0.60 0.36" rgb2="0.48 0.36 0.20" markrgb="0.18 0.12 0.06" width="1024" height="1024"/>
+    <texture type="2d" name="ft_corridor" builtin="checker" mark="edge"                 rgb1="0.55 0.52 0.50" rgb2="0.34 0.32 0.31" markrgb="0.90 0.80 0.10" width="1024" height="1024"/>
+    <texture type="2d" name="ft_bedroom"  builtin="checker" mark="random" random="0.6"  rgb1="0.72 0.64 0.82" rgb2="0.50 0.42 0.62" markrgb="0.30 0.20 0.36" width="1024" height="1024"/>
+    <texture type="2d" name="ft_office"   builtin="checker" mark="cross"                rgb1="0.84 0.58 0.48" rgb2="0.62 0.38 0.30" markrgb="0.30 0.14 0.10" width="1024" height="1024"/>
+    <texture type="2d" name="ft_bath"     builtin="checker" mark="edge"                 rgb1="0.84 0.92 0.95" rgb2="0.58 0.72 0.80" markrgb="0.18 0.30 0.40" width="1024" height="1024"/>
+    <material name="floor_kitchen"  texture="ft_kitchen"  texrepeat="6 6" reflectance="0.05"/>
+    <material name="floor_living"   texture="ft_living"   texrepeat="3 3" reflectance="0.04"/>
+    <material name="floor_corridor" texture="ft_corridor" texrepeat="9 3" reflectance="0.03"/>
+    <material name="floor_bedroom"  texture="ft_bedroom"  texrepeat="2 2" reflectance="0.02"/>
+    <material name="floor_office"   texture="ft_office"   texrepeat="4 4" reflectance="0.04"/>
+    <material name="floor_bath"     texture="ft_bath"     texrepeat="7 7" reflectance="0.10"/>
+    <material name="floor_main"     texture="ft_living"   texrepeat="3 3" reflectance="0.04"/>
+    <material name="floor_carpet"   texture="ft_bedroom"  texrepeat="2 2" reflectance="0.01"/>
+
+    <!-- Walls — one structurally-unique texture per room too, so a wall in the kitchen never matches
+         a wall in the office. -->
+    <texture type="2d" name="wt_kitchen"  builtin="checker" mark="random" random="0.55" rgb1="0.86 0.92 0.70" rgb2="0.64 0.74 0.50" markrgb="0.24 0.34 0.14" width="1024" height="1024"/>
+    <texture type="2d" name="wt_living"   builtin="checker" mark="cross"                rgb1="0.95 0.86 0.72" rgb2="0.80 0.66 0.50" markrgb="0.46 0.30 0.16" width="1024" height="1024"/>
+    <texture type="2d" name="wt_corridor" builtin="checker" mark="edge"                 rgb1="0.88 0.86 0.84" rgb2="0.64 0.62 0.60" markrgb="0.18 0.18 0.18" width="1024" height="1024"/>
+    <texture type="2d" name="wt_bedroom"  builtin="checker" mark="random" random="0.6"  rgb1="0.78 0.82 0.96" rgb2="0.56 0.62 0.84" markrgb="0.20 0.26 0.46" width="1024" height="1024"/>
+    <texture type="2d" name="wt_office"   builtin="checker" mark="cross"                rgb1="0.72 0.92 0.84" rgb2="0.50 0.74 0.64" markrgb="0.12 0.34 0.26" width="1024" height="1024"/>
+    <texture type="2d" name="wt_bath"     builtin="checker" mark="edge"                 rgb1="0.78 0.90 0.96" rgb2="0.56 0.72 0.84" markrgb="0.18 0.34 0.42" width="1024" height="1024"/>
+    <material name="wall_kitchen"  texture="wt_kitchen"  texrepeat="3 1" reflectance="0.02"/>
+    <material name="wall_living"   texture="wt_living"   texrepeat="2 1" reflectance="0.02"/>
+    <material name="wall_corridor" texture="wt_corridor" texrepeat="2 1" reflectance="0.02"/>
+    <material name="wall_bedroom"  texture="wt_bedroom"  texrepeat="2 1" reflectance="0.02"/>
+    <material name="wall_office"   texture="wt_office"   texrepeat="3 1" reflectance="0.02"/>
+    <material name="wall_bath"     texture="wt_bath"     texrepeat="2 1" reflectance="0.05"/>
+    <!-- back-compat aliases for outer/shared walls that referenced the old names -->
+    <material name="wall_warm"     texture="wt_living"   texrepeat="2 1" reflectance="0.02"/>
+    <material name="wall_cool"     texture="wt_bedroom"  texrepeat="2 1" reflectance="0.02"/>
 
     <material name="sofa"          rgba="0.35 0.45 0.68 1"/>
     <material name="table_wood"    rgba="0.55 0.38 0.20 1"/>
@@ -102,15 +113,28 @@
           pos="-0.20 -1.1375 -0.40" material="bookshelf_mat" contype="1" conaffinity="1"/>
     <geom name="stair_4" type="box" size="0.20 0.0875 0.10"
           pos="-0.20 -1.3125 -0.50" material="bookshelf_mat" contype="1" conaffinity="1"/>
-    <!-- Per-room floor overlays (visual only). -->
+    <!-- Per-room floor overlays (visual only) — each room's floor is its OWN texture, so the
+         floor-dominated low-camera view is unambiguous room to room. -->
     <geom name="floor_kitchen" type="box" size="1.50 1.25 0.002"
           pos="-2.50 1.75 0.002" material="floor_kitchen" contype="0" conaffinity="0"/>
+    <geom name="floor_living" type="box" size="1.50 1.75 0.002"
+          pos="-2.50 -1.25 0.002" material="floor_living" contype="0" conaffinity="0"/>
+    <geom name="floor_office" type="box" size="1.75 1.00 0.002"
+          pos="2.25 0.00 0.002" material="floor_office" contype="0" conaffinity="0"/>
+    <geom name="floor_bedroom" type="box" size="1.75 1.00 0.002"
+          pos="2.25 2.00 0.002" material="floor_bedroom" contype="0" conaffinity="0"/>
     <geom name="floor_bath" type="box" size="1.75 1.00 0.002"
           pos="2.25 -2.00 0.002" material="floor_bath" contype="0" conaffinity="0"/>
+    <!-- Corridor floor: the two strips that flank the staircase hole (avoids covering it). -->
+    <geom name="floor_cor_n" type="box" size="0.20 1.85 0.002"
+          pos="-0.20 1.15 0.002" material="floor_corridor" contype="0" conaffinity="0"/>
+    <geom name="floor_cor_s" type="box" size="0.20 0.80 0.002"
+          pos="-0.20 -2.20 0.002" material="floor_corridor" contype="0" conaffinity="0"/>
+    <!-- Rugs as local accents on top. -->
     <geom name="rug_living" type="box" size="0.80 0.50 0.004"
-          pos="-2.50 -1.00 0.004" material="rug_mat" contype="0" conaffinity="0"/>
+          pos="-2.50 -1.00 0.005" material="rug_mat" contype="0" conaffinity="0"/>
     <geom name="rug_bedroom" type="box" size="0.70 0.50 0.004"
-          pos="2.20 1.50 0.004" material="floor_carpet" contype="0" conaffinity="0"/>
+          pos="2.20 1.50 0.005" material="floor_carpet" contype="0" conaffinity="0"/>
 
     <!-- ── Outer walls (6×4 m bounding box at ±4 / ±3) ─────────────────── -->
     <geom name="wall_south" type="box" size="4.00 0.06 0.80"
@@ -127,16 +151,16 @@
     <geom name="wA_w" type="box" size="0.50 0.06 0.80"
           pos="-3.50 0.50 0.80" material="wall_kitchen" contype="1" conaffinity="1"/>
     <geom name="wA_e" type="box" size="0.60 0.06 0.80"
-          pos="-1.60 0.50 0.80" material="wall_warm" contype="1" conaffinity="1"/>
+          pos="-1.60 0.50 0.80" material="wall_living" contype="1" conaffinity="1"/>
 
     <!-- ── Interior wall B: corridor west wall (x=-1, y ∈ [-3, +3]) ─────── -->
     <!-- Two doorways, deliberately at different y: -->
     <!--   Living → corridor at y ∈ [-1.8, -1.0]  -->
     <!--   Kitchen → corridor at y ∈ [+1.6, +2.4] -->
     <geom name="wB_s" type="box" size="0.06 0.60 0.80"
-          pos="-1.00 -2.40 0.80" material="wall_warm" contype="1" conaffinity="1"/>
+          pos="-1.00 -2.40 0.80" material="wall_living" contype="1" conaffinity="1"/>
     <geom name="wB_m" type="box" size="0.06 1.30 0.80"
-          pos="-1.00 0.30 0.80" material="wall_warm" contype="1" conaffinity="1"/>
+          pos="-1.00 0.30 0.80" material="wall_corridor" contype="1" conaffinity="1"/>
     <geom name="wB_n" type="box" size="0.06 0.30 0.80"
           pos="-1.00 2.70 0.80" material="wall_kitchen" contype="1" conaffinity="1"/>
 
@@ -148,15 +172,15 @@
     <geom name="wC_s" type="box" size="0.06 0.25 0.80"
           pos="0.50 -2.75 0.80" material="wall_bath" contype="1" conaffinity="1"/>
     <geom name="wC_m1" type="box" size="0.06 0.75 0.80"
-          pos="0.50 -0.95 0.80" material="wall_warm" contype="1" conaffinity="1"/>
+          pos="0.50 -0.95 0.80" material="wall_corridor" contype="1" conaffinity="1"/>
     <geom name="wC_m2" type="box" size="0.06 0.40 0.80"
-          pos="0.50 1.00 0.80" material="wall_warm" contype="1" conaffinity="1"/>
+          pos="0.50 1.00 0.80" material="wall_office" contype="1" conaffinity="1"/>
     <geom name="wC_n" type="box" size="0.06 0.40 0.80"
-          pos="0.50 2.60 0.80" material="wall_warm" contype="1" conaffinity="1"/>
+          pos="0.50 2.60 0.80" material="wall_bedroom" contype="1" conaffinity="1"/>
 
     <!-- ── Interior wall F: bedroom ↔ office (y=+1, x ∈ [+0.5, +4]) ────── -->
     <geom name="wF" type="box" size="1.75 0.06 0.80"
-          pos="2.25 1.00 0.80" material="wall_warm" contype="1" conaffinity="1"/>
+          pos="2.25 1.00 0.80" material="wall_bedroom" contype="1" conaffinity="1"/>
 
     <!-- ── Interior wall G: office ↔ bathroom (y=-1, x ∈ [+0.5, +4]) ───── -->
     <geom name="wG" type="box" size="1.75 0.06 0.80"
@@ -301,6 +325,24 @@
             pos="0.125 0 0.19" rgba="1 1 1 1" contype="0" conaffinity="0"/>
       <site name="dock_site" pos="0 0 0.02" size="0.01"/>
     </body>
+
+    <!-- ── Per-room LANDMARKS ──────────────────────────────────────────────
+         One large, uniquely-SHAPED, bright landmark per room (cylinder / sphere / box / ellipsoid /
+         capsule), at the low camera's eye level, against a wall so it never blocks the duck. Distinct
+         silhouettes give distinct keypoints, so each room carries an unambiguous visual anchor for
+         loop closure. Visual only (contype=0). -->
+    <geom name="lm_kitchen"  type="cylinder"  size="0.09 0.35" pos="-1.45 2.55 0.35"
+          material="obj_red"    contype="0" conaffinity="0"/>
+    <geom name="lm_living"   type="sphere"    size="0.20"      pos="-3.55 -1.95 0.30"
+          material="obj_blue"   contype="0" conaffinity="0"/>
+    <geom name="lm_corridor" type="box"       size="0.06 0.06 0.38" pos="-0.85 0.00 0.38"
+          material="obj_cyan"   contype="0" conaffinity="0"/>
+    <geom name="lm_bedroom"  type="ellipsoid" size="0.18 0.14 0.30" pos="1.25 2.60 0.30"
+          material="ball_pink"  contype="0" conaffinity="0"/>
+    <geom name="lm_office"   type="capsule"   size="0.09 0.22" pos="0.95 -0.60 0.35"
+          material="ball_green" contype="0" conaffinity="0"/>
+    <geom name="lm_bath"     type="box"       size="0.15 0.10 0.30" pos="3.60 -1.25 0.30"
+          material="ball_orange" contype="0" conaffinity="0"/>
 
     <!-- ── Interactable objects scattered across rooms ──────────────────── -->
     <body name="obj_0" pos="-2.20 -1.20 0">
