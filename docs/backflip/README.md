@@ -4,8 +4,22 @@ Task id: `Mjlab-BoxFlip-Flat-MicroDuck`. The duck starts standing on the edge of
 0.8 m box, throws itself backward off the edge, completes a full turn in the air
 (~380 ms of flight) and lands on its feet on a crash mat, then stands up.
 
-See `backflip_v4_slowmo.mp4`
-(quarter speed) and `backflip_v4_realtime.mp4` in this folder.
+![six ducks mid-flip](six_ducks_midair.png)
+
+Videos in this folder (checkpoint v4 6500–6750):
+
+| file | what |
+|---|---|
+| `six_ducks_one_sim_4k_slowmo.mp4` | six ducks on one ledge, one camera, 4K, quarter speed with motion interpolation |
+| `six_ducks_one_sim_front_realtime.mp4` | same shot head-on, real speed |
+| `three_views_slowmo.mp4` | one duck from side / three-quarter / behind, one-third speed |
+| `backflip_v4_slowmo.mp4`, `backflip_v4_realtime.mp4` | single duck, side view |
+| `backflip_v1_frames.png` | frame sheet of the v1 (head-tripod) landing, for contrast |
+
+Six ducks in one scene: `scripts/backflip/render_row.py` lays the terrain out as
+N narrow tiles so the boxes fuse into one ledge, gives each env its own slot,
+and renders every neighbour into one frame (`ViewerConfig.max_extra_envs`).
+The envs are still separate physics worlds, so they cannot collide.
 
 A backflip from flat ground is out of reach for this robot: a standing jump gives
 ~60 ms of airtime. Tipping off a box edge supplies the spin (13–15 rad/s from
@@ -49,6 +63,7 @@ uv run train Mjlab-BoxFlip-Flat-MicroDuck --env.scene.num-envs 4096      # ~8 h 
 uv run python scripts/backflip/audit_flip.py Mjlab-BoxFlip-Flat-MicroDuck <ckpt.pt> 32
 uv run python scripts/backflip/trace_contacts.py Mjlab-BoxFlip-Flat-MicroDuck <ckpt.pt>
 uv run python scripts/backflip/render_checkpoint.py Mjlab-BoxFlip-Flat-MicroDuck <ckpt.pt> out.mp4 125
+uv run python scripts/backflip/render_row.py Mjlab-BoxFlip-Flat-MicroDuck <ckpt.pt> row.mp4 120 6 35 -20 2.6 "-0.7,0,0.5" 3840 2160   # 6 ducks, one scene
 .venv/bin/python scripts/backflip/play_viser.py Mjlab-BoxFlip-Flat-MicroDuck --checkpoint-file <ckpt.pt> --viewer viser
 ```
 
