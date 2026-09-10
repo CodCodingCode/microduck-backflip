@@ -144,8 +144,22 @@ from mjlab_microduck.tasks.microduck_velocity_env_cfg import HEAD_BODY_NAMES
 from mjlab_microduck.tasks.symmetry import PpoWithSymmetryCfg, SYMMETRY_CFG
 
 
-def make_microduck_roulade_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
-    """Create Microduck forward-roll environment configuration."""
+# Backward roll (BackRoulade): the head-local axis that must face the floor
+# for the pivot latch. The forward roll plants the FLAT TOP of the head
+# (mdp._HEAD_TOP_AXIS); a backward roll goes over the BACK of the head, which
+# is jaw_soft's local +z (world −x expressed in jaw_soft at HOME, measured
+# 2026-09-09). With the neck neutral it points straight down at −90° trunk
+# pitch, so the latch does not force a head posture the way the chin tuck does.
+BACK_HEAD_AXIS = (0.0, 0.0, 1.0)
+
+
+def make_microduck_roulade_env_cfg(play: bool = False, direction: float = 1.0) -> ManagerBasedRlEnvCfg:
+    """Create Microduck roll environment configuration.
+
+    ``direction`` +1 is the forward roulade; -1 is the backward roll
+    (Mjlab-BackRoulade-Flat-MicroDuck): same rewards, gates and curriculum,
+    with the spawn pitch, spawn momentum and credited rotation mirrored.
+    """
 
     feet_ground_cfg = ContactSensorCfg(
         name="feet_ground_contact",
@@ -543,6 +557,8 @@ def make_microduck_roulade_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
             "tuck_overrides":     TUCK_OVERRIDES,
             "tuck_factor_range":  (0.3, 1.0),
             "joint_noise_std":    0.08,
+            "direction":          direction,
+            "head_axis":          BACK_HEAD_AXIS if direction < 0 else None,
         },
     )
 

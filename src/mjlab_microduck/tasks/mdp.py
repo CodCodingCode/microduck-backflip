@@ -6646,6 +6646,16 @@ def trunk_upward_velocity_penalty(
 # qvel about +y pitches the robot nose-down/forward and drives accum upward.
 _ROULADE_FWD_SIGN = 1.0
 
+
+def _roulade_dir(env: ManagerBasedRlEnv) -> float:
+    """Roll direction sign for this env: +1 forward (default), -1 backward.
+
+    Set per env by ``reset_roulade_state(direction=...)`` so the BackRoulade
+    task can reuse every reward term unchanged — the accumulator, the head
+    pivot and the mid-roll spawn momentum all read the sign from here.
+    """
+    return getattr(env, "_roulade_dir", _ROULADE_FWD_SIGN)
+
 # Sensor names read by the accumulator update (must match the env cfg).
 _ROULADE_SUPPORT_SENSOR = "robot_ground_contact"
 _ROULADE_HEAD_SENSOR = "head_ground_contact"
@@ -6691,7 +6701,7 @@ def _head_top_down(env: ManagerBasedRlEnv, asset: Entity) -> torch.Tensor:
         env._roulade_head_body_id = ids[0]
     q = asset.data.body_link_quat_w[:, env._roulade_head_body_id]
     w, x, y, z = q[:, 0], q[:, 1], q[:, 2], q[:, 3]
-    a, b, c = _HEAD_TOP_AXIS
+    a, b, c = getattr(env, "_roulade_head_axis", _HEAD_TOP_AXIS)
     # z-component of R(q) @ axis_local
     axis_world_z = (
         2.0 * (x * z - w * y) * a + 2.0 * (y * z + w * x) * b + (1.0 - 2.0 * (x * x + y * y)) * c
@@ -6735,7 +6745,7 @@ def _update_roulade_accum(env: ManagerBasedRlEnv, asset: Entity) -> None:
     _roulade_state(env)
     step = int(env.common_step_counter)
     if step != env._roulade_last_update_step:
-        omega_fwd = _ROULADE_FWD_SIGN * asset.data.root_link_ang_vel_b[:, 1]
+        omega_fwd = _roulade_dir(env) * asset.data.root_link_ang_vel_b[:, 1]
         delta = torch.nan_to_num(omega_fwd, nan=0.0) * env.step_dt
         supported = _sensor_any_contact(env, _ROULADE_SUPPORT_SENSOR)
         if supported is not None:
@@ -6800,8 +6810,17 @@ def reset_roulade_state(
     tuck_overrides: Optional[dict] = None,
     tuck_factor_range: tuple = (0.3, 1.0),
     joint_noise_std: float = 0.0,
+    direction: float = 1.0,
+    head_axis: Optional[tuple] = None,
 ):
     """Reset to a standing start or a mid-roll state (reverse curriculum).
+
+    ``direction`` is +1 for the forward roulade and -1 for a BACKWARD roll:
+    it flips the sign of the mid-roll spawn pitch and momentum and of the
+    rotation the accumulator credits (see ``_roulade_dir``). ``head_axis`` is
+    the head-local axis that must point at the floor for the head latch —
+    the flat top for a forward roll (default), the back of the head
+    (jaw_soft local +z, measured 2026-09-09) for a backward one.
 
     Standing bucket: upright (±standing_tilt_max pitch/roll noise), random yaw,
     HOME joints (left from reset_robot_joints), z in [standing_z_min, _max].
@@ -6823,6 +6842,11 @@ def reset_roulade_state(
     num = len(env_ids)
     asset: Entity = env.scene[asset_cfg.name]
     accum, max_accum, paid = _roulade_state(env)
+    # Direction is a task property, not a per-env sample; storing it on the
+    # env is how the reward terms (which get no cfg) learn which way is "forward".
+    env._roulade_dir = _ROULADE_FWD_SIGN * float(direction)
+    if head_axis is not None:
+        env._roulade_head_axis = tuple(head_axis)
 
     total = standing_prob + midroll_prob
     is_mid = torch.rand(num, device=env.device) < (midroll_prob / max(total, 1e-6))
@@ -6837,7 +6861,8 @@ def reset_roulade_state(
         torch.rand(num, device=env.device) * (midroll_pitch_max - midroll_pitch_min)
         + midroll_pitch_min
     )
-    pitch = torch.where(is_mid, mid_pitch, pitch)
+    # Backward roll: spawn pitched the other way; accum still tracks |angle|.
+    pitch = torch.where(is_mid, env._roulade_dir * mid_pitch, pitch)
     roll = (torch.rand(num, device=env.device) * 2 - 1) * max(standing_tilt_max, math.radians(5.0))
 
     cp = torch.cos(pitch * 0.5); sp = torch.sin(pitch * 0.5)
@@ -6888,7 +6913,7 @@ def reset_roulade_state(
             * (midroll_omega_range[1] - midroll_omega_range[0])
             + midroll_omega_range[0]
         )
-        env.sim.data.qvel[mid_env_ids, 4] = _ROULADE_FWD_SIGN * omega
+        env.sim.data.qvel[mid_env_ids, 4] = env._roulade_dir * omega
 
     # Élan hook: forward base velocity for STANDING spawns, body x → world xy
     # through the spawn yaw. (0, 0) = standstill start, disabled.
@@ -6972,7 +6997,7 @@ def roulade_head_pivot(
     contact = (found.view(found.shape[0], -1) > 0).any(dim=-1).float()
 
     in_window = ((accum > angle_lo) & (accum < angle_hi)).float()
-    omega_fwd = _ROULADE_FWD_SIGN * asset.data.root_link_ang_vel_b[:, 1]
+    omega_fwd = _roulade_dir(env) * asset.data.root_link_ang_vel_b[:, 1]
     rate = torch.clamp(torch.nan_to_num(omega_fwd, nan=0.0) / rate_norm, 0.0, 1.0)
     top = 0.3 + 0.7 * _head_top_down(env, asset).float()
     return contact * in_window * rate * top

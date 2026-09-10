@@ -1,0 +1,101 @@
+<!-- Microduck stunt scene: a block to stand on and a mattress to land on.
+
+  Run it with the runtime sim:
+
+      DUCK_SIM_SCENE=stunt DUCK_SIM_KEYFRAME=STAND scripts/duck-sim up
+
+  The duck always spawns at the origin, so the block sits under the origin and its top is the
+  duck's floor. Forward is +x: the front edge is 0.5 m ahead (x = +0.50), which `scripts/duck-sim
+  drive` (8 s at 0.15 m/s) reaches, and the mattress starts right there. Standing still, it stays on.
+
+  Side view (+x to the right):
+
+           duck
+          ┌────────┐
+          │ BLOCK  │  BLOCK_H
+      ────┴────────┴──────────────────────────
+                   │    MATTRESS (soft)     │
+      floor  ──────┴────────────────────────┴──
+          x=-0.4  0  0.5                   1.9
+
+  Numbers to change (each appears in exactly the places marked):
+
+    BLOCK_H     = 0.30   block height. Every keyframe's trunk z is the bare-floor value + BLOCK_H
+                         (STAND 0.12 -> 0.42, SIT/FOLD 0.07 -> 0.37). Block geom: size z = BLOCK_H/2,
+                         pos z = BLOCK_H/2.
+    MATTRESS_T  = 0.10   mattress thickness. Geom size z = MATTRESS_T/2, pos z = MATTRESS_T/2.
+    softness             the mattress geom's solref: first number is the contact time constant in
+                         seconds (0.02 is a hard floor, 0.08 is a mattress, 0.15 is a pillow);
+                         second is the damping ratio (1 = no bounce, 0.5 = some bounce).
+                         priority="2" makes the mattress's softness win over the duck's own
+                         contact parameters, so the feet do not harden it.
+-->
+<mujoco model="scene">
+    <include file="robot_allcollisions.xml" />
+
+    <visual>
+        <headlight diffuse="0.6 0.6 0.6" ambient="0.3 0.3 0.3" specular="0 0 0" />
+        <rgba haze="0.15 0.25 0.35 1" />
+        <global azimuth="160" elevation="-20" />
+    </visual>
+
+    <asset>
+        <texture type="skybox" builtin="gradient" rgb1="0.3 0.5 0.7" rgb2="0 0 0" width="512"
+            height="3072" />
+        <texture type="2d" name="groundplane" builtin="checker" mark="edge" rgb1="0.2 0.3 0.4"
+            rgb2="0.1 0.2 0.3"
+            markrgb="0.8 0.8 0.8" width="300" height="300" />
+        <material name="groundplane" texture="groundplane" texuniform="true" texrepeat="5 5"
+            reflectance="0.2" />
+        <material name="block" rgba="0.55 0.45 0.35 1" />
+        <material name="mattress" rgba="0.25 0.55 0.85 1" />
+    </asset>
+
+    <worldbody>
+        <light pos="0 0 3.5" dir="0 0 -1" directional="true" />
+        <geom name="floor" size="0 0 0.05" pos="0 0 0" type="plane" material="groundplane" />
+
+        <!-- BLOCK: 0.90 m long (x from -0.40 to +0.50), 0.60 m wide, BLOCK_H tall. The spawn
+             point is 0.5 m behind the front edge so the duck only leaves it when driven. -->
+        <geom name="block" type="box" size="0.45 0.30 0.15" pos="0.05 0 0.15" material="block" />
+
+        <!-- MATTRESS: 1.4 m long (x from 0.50 to 1.90), 1.0 m wide, MATTRESS_T thick, flush
+             against the block's front edge. Soft contact; its parameters take priority over the
+             duck's so the feet do not harden it. -->
+        <geom name="mattress" type="box" size="0.70 0.50 0.05" pos="1.20 0 0.05"
+            material="mattress" priority="2" solref="0.08 0.7" solimp="0.5 0.95 0.03 0.5 2"
+            friction="1.0 0.005 0.0001" />
+    </worldbody>
+
+    <!-- Same poses as scene.xml, with BLOCK_H added to every trunk z. -->
+    <keyframe>
+        <key name="INIT" qpos="0 0 0.42 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0" ctrl="0 0 0 0 0 0 0 0 0 0 0 0 0 0"/>
+        <key name="STAND" qpos="
+        0 0 0.42 1 0 0 0
+
+        0 -0.08726646259971647 -0.457924 -0.004940 0.452984
+        0.3490658503988659 0.3490658503988659 0 0
+        0 0.08726646259971647 0.457924 0.004940 -0.452984"
+         ctrl="
+        0 -0.08726646259971647 -0.457924 -0.004940 0.452984
+        0.3490658503988659 0.3490658503988659 0 0
+        0 0.08726646259971647 0.457924 0.004940 -0.452984"
+        />
+        <key name="SIT" qpos="
+        0 0 0.37 1 0 0 0
+        0 0 -0.5236 1.0472
+        0 0.5 1.6 0
+        0 0 0 0.5236 -1.0472 0" ctrl="
+        0 0 -0.5236 1.0472 0
+        0.5 1.6 0 0 0
+        0 0.5236 -1.0472 0"/>
+        <key name="FOLD" qpos="
+        0 0 0.37 1 0 0 0
+        0 0 1.57 1.57 0
+        1 1 0 0 0
+        0 -1.57 -1.57 0" ctrl="
+        0 0 1.57 1.57 0
+        1 1 0 0
+        0 0 -1.57 -1.57 0"/>
+    </keyframe>
+</mujoco>

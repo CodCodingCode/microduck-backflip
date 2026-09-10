@@ -233,6 +233,30 @@ register_mjlab_task(
     runner_cls=MicroduckOnPolicyRunner,
 )
 
+# BackRoulade — the same roll mirrored: backward over the back of the head,
+# land back on the feet. Same rewards and curriculum, direction=-1.
+register_mjlab_task(
+    task_id="Mjlab-BackRoulade-Flat-MicroDuck",
+    env_cfg=make_microduck_roulade_env_cfg(direction=-1.0),
+    play_env_cfg=make_microduck_roulade_env_cfg(play=True, direction=-1.0),
+    rl_cfg=MicroduckRouladeRlCfg,
+    runner_cls=MicroduckOnPolicyRunner,
+)
+
+# BoxFlip — stand on a box edge, throw a backflip off it, land on the mat.
+from mjlab_microduck.tasks.microduck_boxflip_env_cfg import (
+    MicroduckBoxFlipRlCfg,
+    make_microduck_boxflip_env_cfg,
+)
+
+register_mjlab_task(
+    task_id="Mjlab-BoxFlip-Flat-MicroDuck",
+    env_cfg=make_microduck_boxflip_env_cfg(),
+    play_env_cfg=make_microduck_boxflip_env_cfg(play=True),
+    rl_cfg=MicroduckBoxFlipRlCfg,
+    runner_cls=MicroduckOnPolicyRunner,
+)
+
 # Backlash variants — ±1° serial gear play per servo + encoder-through-backlash
 # actuator feedback and joint obs (see tasks/backlash.py). Each family keeps its
 # base task's collision model: Velocity → robot_walk_backlash.xml,
